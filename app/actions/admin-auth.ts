@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getAdminClient } from '@/lib/supabase/admin';
-import { verifyPassword } from '@/lib/admin/password';
+import { hashPassword, verifyPassword } from '@/lib/admin/password';
 import {
   createSessionToken,
   SESSION_COOKIE_NAME,
@@ -16,6 +16,12 @@ const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
 const GENERIC_ERROR = 'Email atau password salah.';
 const LOCKED_ERROR = 'Terlalu banyak percobaan gagal. Coba lagi dalam beberapa menit.';
+
+// Dipakai untuk menyamakan waktu respons jalur "email tidak ada" dengan jalur
+// "password salah" (yang menjalankan scryptSync sungguhan) — tanpa ini,
+// perbedaan waktu respons membocorkan email mana yang valid meski pesan
+// errornya sama persis.
+const DUMMY_HASH = hashPassword('bukan-password-sungguhan');
 
 type AdminRow = {
   id: string;
@@ -44,7 +50,10 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     .maybeSingle();
   const admin = data as AdminRow | null;
 
-  if (!admin) return { error: GENERIC_ERROR };
+  if (!admin) {
+    verifyPassword(password, DUMMY_HASH);
+    return { error: GENERIC_ERROR };
+  }
 
   if (admin.locked_until && new Date(admin.locked_until) > new Date()) {
     return { error: LOCKED_ERROR };
@@ -63,7 +72,8 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
           ? new Date(Date.now() + LOCKOUT_MINUTES * 60_000).toISOString()
           : null,
       })
-      .eq('id', admin.id);
+      .eq('id', admin.id)
+      .eq('failed_attempts', admin.failed_attempts);
     return { error: locked ? LOCKED_ERROR : GENERIC_ERROR };
   }
 
