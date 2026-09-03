@@ -30,6 +30,7 @@ Didefinisikan di `.env.example` (nilai kosong, isi sendiri di `.env.local`):
 - `EXELY_PROPERTY_ID`
 - `NEXT_PUBLIC_SITE_URL`
 - `RESERVATION_FORM_SECRET` — opsional
+- `ADMIN_SESSION_SECRET` — rahasia, server-only, untuk sesi login panel admin
 
 `.env.local` tidak pernah di-commit (lihat `.gitignore`).
 
