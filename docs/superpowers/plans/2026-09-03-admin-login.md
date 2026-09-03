@@ -218,7 +218,7 @@ EOF
 
 - [ ] **Step 1: Install `jose`**
 
-Run: `cd web && npm install jose@^5`
+Run: `npm install jose@^5`
 Expected: `package.json` dan `package-lock.json` berubah, ada `"jose": "^5.x.x"` di `dependencies`.
 
 - [ ] **Step 2: Tulis test yang gagal**
@@ -361,7 +361,7 @@ export async function requireAdminSession(): Promise<SessionPayload> {
 
 - [ ] **Step 2: Typecheck**
 
-Run: `cd web && npx tsc --noEmit`
+Run: `npx tsc --noEmit`
 Expected: tidak ada error.
 
 - [ ] **Step 3: Commit**
@@ -421,7 +421,7 @@ export const config = {
 
 - [ ] **Step 2: Typecheck**
 
-Run: `cd web && npx tsc --noEmit`
+Run: `npx tsc --noEmit`
 Expected: tidak ada error.
 
 - [ ] **Step 3: Commit**
@@ -548,7 +548,7 @@ export async function logout(): Promise<void> {
 
 - [ ] **Step 2: Typecheck**
 
-Run: `cd web && npx tsc --noEmit`
+Run: `npx tsc --noEmit`
 Expected: tidak ada error.
 
 - [ ] **Step 3: Commit**
@@ -662,7 +662,7 @@ export default function LoginPage() {
 
 - [ ] **Step 3: Typecheck & lint**
 
-Run: `cd web && npx tsc --noEmit && npx eslint app/panel-sanghyang/login`
+Run: `npx tsc --noEmit && npx eslint app/panel-sanghyang/login`
 Expected: tidak ada error.
 
 - [ ] **Step 4: Commit**
@@ -726,7 +726,7 @@ export default function AdminDashboardPage() {
 
 - [ ] **Step 2: Typecheck & lint**
 
-Run: `cd web && npx tsc --noEmit && npx eslint app/panel-sanghyang/page.tsx`
+Run: `npx tsc --noEmit && npx eslint app/panel-sanghyang/page.tsx`
 Expected: tidak ada error.
 
 - [ ] **Step 3: Commit**
@@ -789,7 +789,7 @@ console.log(`  ('${escapedEmail}', '${hash}');`);
 
 - [ ] **Step 2: Jalankan manual untuk sanity check**
 
-Run: `cd web && node scripts/create-admin.ts staff@sanghyang.com passwordtest123`
+Run: `node scripts/create-admin.ts staff@sanghyang.com passwordtest123`
 Expected: output berisi `Password hash:` diikuti string `scrypt:...`, lalu blok `insert into public.admin_users ...` dengan email dan hash yang sama.
 
 - [ ] **Step 3: Commit**
@@ -816,23 +816,23 @@ Task ini butuh migrasi `db/005_admin_users.sql` (Task 1) **sudah dijalankan manu
 
 - [ ] **Step 1: Jalankan seluruh test suite**
 
-Run: `cd web && npm test`
+Run: `npm test`
 Expected: semua test PASS (termasuk `admin-auth.test.ts` dari Task 2/3, dan test lain yang sudah ada seperti `antispam.test.ts`, `reservation.test.ts`).
 
 - [ ] **Step 2: Typecheck & lint seluruh proyek**
 
-Run: `cd web && npx tsc --noEmit && npx eslint .`
+Run: `npx tsc --noEmit && npx eslint .`
 Expected: tidak ada error.
 
 - [ ] **Step 3: Buat akun admin test**
 
-Run: `cd web && node scripts/create-admin.ts test-e2e@sanghyang.com TestPassword123`
+Run: `node scripts/create-admin.ts test-e2e@sanghyang.com TestPassword123`
 
 Salin SQL `insert` yang dicetak, minta user menjalankannya di Supabase SQL Editor (atau kalau user sudah kasih kredensial Supabase untuk dipakai langsung, jalankan lewat koneksi `pg` seperti pola verifikasi di task-task sebelumnya).
 
 - [ ] **Step 4: Jalankan dev server**
 
-Run: `cd web && npm run dev`
+Run: `npm run dev`
 Expected: server jalan di `http://localhost:3000` (atau port lain kalau 3000 terpakai).
 
 - [ ] **Step 5: Verifikasi redirect guard (belum login)**
