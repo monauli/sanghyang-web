@@ -8,7 +8,7 @@
 
 **Tech Stack:** Next.js 16 App Router, TypeScript, Supabase (Postgres + `service_role` client), `jose` (JWT, baru ditambahkan), Node.js `crypto` bawaan (scrypt), `node:test` untuk unit test.
 
-**Spec:** `web/docs/superpowers/specs/2026-09-03-admin-login-design.md`
+**Spec:** `docs/superpowers/specs/2026-09-03-admin-login-design.md`
 
 ## Global Constraints
 
@@ -20,25 +20,25 @@
 - Password TIDAK PERNAH disimpan polos — hash `scrypt` bawaan Node, format `scrypt:<salt-hex>:<hash-hex>`.
 - Pesan error login digeneralisasi ("Email atau password salah.") — tidak membedakan email tidak ada vs password salah.
 - Dependency baru yang boleh ditambah: **hanya `jose`**.
-- `web/db/005_admin_users.sql` **TIDAK dijalankan** oleh siapa pun yang mengerjakan plan ini — hanya dibuat untuk direview & dijalankan manual oleh user di Supabase SQL Editor.
+- `db/005_admin_users.sql` **TIDAK dijalankan** oleh siapa pun yang mengerjakan plan ini — hanya dibuat untuk direview & dijalankan manual oleh user di Supabase SQL Editor.
 - Tabel `admin_users` tidak punya RLS policy atau GRANT untuk `anon`/`authenticated` — hanya diakses lewat `service_role` (`lib/supabase/admin.ts` yang sudah ada).
-- Ikuti pola kode yang sudah ada di `web/app/actions/reservation.ts` dan `web/lib/supabase/queries.ts` (Server Action dengan `'use server'`, cast `data as Type | null` alih-alih generic Supabase, komentar Bahasa Indonesia untuk hal yang tidak jelas dari kode).
+- Ikuti pola kode yang sudah ada di `app/actions/reservation.ts` dan `lib/supabase/queries.ts` (Server Action dengan `'use server'`, cast `data as Type | null` alih-alih generic Supabase, komentar Bahasa Indonesia untuk hal yang tidak jelas dari kode).
 
 ---
 
 ### Task 1: Skema database, env var, dan dokumentasi
 
 **Files:**
-- Create: `web/db/005_admin_users.sql`
-- Modify: `web/.env.example`
-- Modify: `web/README.md`
+- Create: `db/005_admin_users.sql`
+- Modify: `.env.example`
+- Modify: `README.md`
 
 **Interfaces:**
 - Produces: tabel `public.admin_users(id, email, password_hash, failed_attempts, locked_until, created_at)` — dipakai Task 6 (Server Actions). Env var `ADMIN_SESSION_SECRET` — dipakai Task 3 (session.ts).
 
 - [ ] **Step 1: Tulis SQL migrasi (JANGAN dijalankan)**
 
-Buat `web/db/005_admin_users.sql`:
+Buat `db/005_admin_users.sql`:
 
 ```sql
 -- Fase 6 — tabel admin_users untuk panel admin (/panel-sanghyang).
@@ -71,7 +71,7 @@ comment on table public.admin_users is
 
 - [ ] **Step 2: Tambah `ADMIN_SESSION_SECRET` ke `.env.example`**
 
-Di `web/.env.example`, tambahkan di baris paling bawah:
+Di `.env.example`, tambahkan di baris paling bawah:
 
 ```
 # Panel admin (Fase 6) — menandatangani cookie sesi login /panel-sanghyang.
@@ -80,9 +80,9 @@ Di `web/.env.example`, tambahkan di baris paling bawah:
 ADMIN_SESSION_SECRET=
 ```
 
-- [ ] **Step 3: Update daftar env var di `web/README.md`**
+- [ ] **Step 3: Update daftar env var di `README.md`**
 
-Di bagian "## Environment variables" (`web/README.md`), tambahkan baris baru di daftar:
+Di bagian "## Environment variables" (`README.md`), tambahkan baris baru di daftar:
 
 ```
 - `ADMIN_SESSION_SECRET` — rahasia, server-only, untuk sesi login panel admin
@@ -91,7 +91,7 @@ Di bagian "## Environment variables" (`web/README.md`), tambahkan baris baru di 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add web/db/005_admin_users.sql web/.env.example web/README.md
+git add db/005_admin_users.sql .env.example README.md
 git commit -m "$(cat <<'EOF'
 Tambah skema admin_users dan env var sesi admin (belum dijalankan)
 
@@ -105,8 +105,8 @@ EOF
 ### Task 2: Modul hashing password
 
 **Files:**
-- Create: `web/lib/admin/password.ts`
-- Test: `web/scripts/admin-auth.test.ts`
+- Create: `lib/admin/password.ts`
+- Test: `scripts/admin-auth.test.ts`
 
 **Interfaces:**
 - Consumes: Node `crypto` (`randomBytes`, `scryptSync`, `timingSafeEqual`) — bawaan Node, tidak perlu import tambahan di `package.json`.
@@ -114,7 +114,7 @@ EOF
 
 - [ ] **Step 1: Tulis test yang gagal**
 
-Buat `web/scripts/admin-auth.test.ts`:
+Buat `scripts/admin-auth.test.ts`:
 
 ```ts
 // node --test scripts/admin-auth.test.ts
@@ -153,7 +153,7 @@ Expected: FAIL — `Cannot find module '../lib/admin/password.ts'` (file belum a
 
 - [ ] **Step 3: Implementasi minimal**
 
-Buat `web/lib/admin/password.ts`:
+Buat `lib/admin/password.ts`:
 
 ```ts
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
@@ -194,7 +194,7 @@ Expected: PASS — 4 test lolos.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add web/lib/admin/password.ts web/scripts/admin-auth.test.ts
+git add lib/admin/password.ts scripts/admin-auth.test.ts
 git commit -m "$(cat <<'EOF'
 Tambah modul hashing password admin (scrypt bawaan Node)
 
@@ -208,9 +208,9 @@ EOF
 ### Task 3: Modul token sesi (JWT via jose)
 
 **Files:**
-- Modify: `web/package.json` (tambah dependency `jose`)
-- Create: `web/lib/admin/session.ts`
-- Modify: `web/scripts/admin-auth.test.ts` (tambah test di akhir file)
+- Modify: `package.json` (tambah dependency `jose`)
+- Create: `lib/admin/session.ts`
+- Modify: `scripts/admin-auth.test.ts` (tambah test di akhir file)
 
 **Interfaces:**
 - Consumes: `ADMIN_SESSION_SECRET` dari `process.env` (Global Constraints).
@@ -223,7 +223,7 @@ Expected: `package.json` dan `package-lock.json` berubah, ada `"jose": "^5.x.x"`
 
 - [ ] **Step 2: Tulis test yang gagal**
 
-Tambahkan di akhir `web/scripts/admin-auth.test.ts` (setelah test password yang sudah ada):
+Tambahkan di akhir `scripts/admin-auth.test.ts` (setelah test password yang sudah ada):
 
 ```ts
 import { SignJWT } from 'jose';
@@ -267,7 +267,7 @@ Expected: FAIL — `Cannot find module '../lib/admin/session.ts'`.
 
 - [ ] **Step 4: Implementasi minimal**
 
-Buat `web/lib/admin/session.ts`:
+Buat `lib/admin/session.ts`:
 
 ```ts
 import { SignJWT, jwtVerify } from 'jose';
@@ -313,7 +313,7 @@ Expected: PASS — 7 test lolos (4 dari Task 2 + 3 baru).
 - [ ] **Step 6: Commit**
 
 ```bash
-git add web/package.json web/package-lock.json web/lib/admin/session.ts web/scripts/admin-auth.test.ts
+git add package.json package-lock.json lib/admin/session.ts scripts/admin-auth.test.ts
 git commit -m "$(cat <<'EOF'
 Tambah modul token sesi admin (JWT via jose)
 
@@ -327,17 +327,17 @@ EOF
 ### Task 4: Helper `requireAdminSession()`
 
 **Files:**
-- Create: `web/lib/admin/auth.ts`
+- Create: `lib/admin/auth.ts`
 
 **Interfaces:**
-- Consumes: `verifySessionToken`, `SESSION_COOKIE_NAME`, `type SessionPayload` dari `web/lib/admin/session.ts` (Task 3); `cookies` dari `next/headers`; `redirect` dari `next/navigation`.
+- Consumes: `verifySessionToken`, `SESSION_COOKIE_NAME`, `type SessionPayload` dari `lib/admin/session.ts` (Task 3); `cookies` dari `next/headers`; `redirect` dari `next/navigation`.
 - Produces: `requireAdminSession(): Promise<SessionPayload>` — dipakai checkpoint-checkpoint berikutnya (Server Action & Route Handler kelola katalog/konten) sebagai baris pertama tiap fungsi. Tidak dipakai task lain di plan ini (middleware Task 5 punya jalurnya sendiri karena beda runtime), tapi wajib ada sekarang supaya checkpoint berikutnya tinggal pakai.
 
 Tidak ada test otomatis untuk file ini — ini pembungkus tipis di atas `verifySessionToken` yang sudah ditest di Task 3 (redirect + baca cookie adalah glue code, bukan logic baru). Diverifikasi manual di Task 10.
 
 - [ ] **Step 1: Tulis helper**
 
-Buat `web/lib/admin/auth.ts`:
+Buat `lib/admin/auth.ts`:
 
 ```ts
 import 'server-only';
@@ -367,7 +367,7 @@ Expected: tidak ada error.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add web/lib/admin/auth.ts
+git add lib/admin/auth.ts
 git commit -m "$(cat <<'EOF'
 Tambah helper requireAdminSession untuk Server Action/Route Handler admin
 
@@ -381,17 +381,17 @@ EOF
 ### Task 5: Middleware proteksi route
 
 **Files:**
-- Create: `web/middleware.ts`
+- Create: `middleware.ts`
 
 **Interfaces:**
-- Consumes: `verifySessionToken`, `SESSION_COOKIE_NAME` dari `web/lib/admin/session.ts` (Task 3).
+- Consumes: `verifySessionToken`, `SESSION_COOKIE_NAME` dari `lib/admin/session.ts` (Task 3).
 - Produces: proteksi otomatis untuk semua route `/panel-sanghyang/*` — tidak diimpor file lain, Next.js menjalankannya otomatis berdasarkan `config.matcher`.
 
 Tidak ada test otomatis (middleware butuh request Next.js sungguhan, sesuai lingkup testing di spec). Diverifikasi manual di Task 10.
 
 - [ ] **Step 1: Tulis middleware**
 
-Buat `web/middleware.ts`:
+Buat `middleware.ts`:
 
 ```ts
 import { NextResponse, type NextRequest } from 'next/server';
@@ -427,7 +427,7 @@ Expected: tidak ada error.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add web/middleware.ts
+git add middleware.ts
 git commit -m "$(cat <<'EOF'
 Tambah middleware proteksi route /panel-sanghyang
 
@@ -441,7 +441,7 @@ EOF
 ### Task 6: Server Action login() & logout()
 
 **Files:**
-- Create: `web/app/actions/admin-auth.ts`
+- Create: `app/actions/admin-auth.ts`
 
 **Interfaces:**
 - Consumes: `getAdminClient` dari `@/lib/supabase/admin` (sudah ada); `verifyPassword` dari `@/lib/admin/password` (Task 2); `createSessionToken`, `SESSION_COOKIE_NAME`, `SESSION_MAX_AGE_SECONDS` dari `@/lib/admin/session` (Task 3); `cookies` dari `next/headers`; `redirect` dari `next/navigation`.
@@ -451,7 +451,7 @@ Tidak ada test otomatis untuk file ini — logic lockout & password sudah ditest
 
 - [ ] **Step 1: Tulis Server Action**
 
-Buat `web/app/actions/admin-auth.ts`:
+Buat `app/actions/admin-auth.ts`:
 
 ```ts
 'use server';
@@ -554,7 +554,7 @@ Expected: tidak ada error.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add web/app/actions/admin-auth.ts
+git add app/actions/admin-auth.ts
 git commit -m "$(cat <<'EOF'
 Tambah Server Action login/logout admin dengan rate limit
 
@@ -568,8 +568,8 @@ EOF
 ### Task 7: Halaman login
 
 **Files:**
-- Create: `web/app/panel-sanghyang/login/login-form.tsx`
-- Create: `web/app/panel-sanghyang/login/page.tsx`
+- Create: `app/panel-sanghyang/login/login-form.tsx`
+- Create: `app/panel-sanghyang/login/page.tsx`
 
 **Interfaces:**
 - Consumes: `login`, `type LoginState` dari `@/app/actions/admin-auth` (Task 6); `Button`, `Input`, `Label` dari `@/components/ui/*` (sudah ada, sama seperti dipakai `components/reservation-panel.tsx`).
@@ -577,7 +577,7 @@ EOF
 
 - [ ] **Step 1: Tulis komponen form (Client Component)**
 
-Buat `web/app/panel-sanghyang/login/login-form.tsx`:
+Buat `app/panel-sanghyang/login/login-form.tsx`:
 
 ```tsx
 'use client';
@@ -634,7 +634,7 @@ export function LoginForm() {
 
 - [ ] **Step 2: Tulis halaman (Server Component)**
 
-Buat `web/app/panel-sanghyang/login/page.tsx`:
+Buat `app/panel-sanghyang/login/page.tsx`:
 
 ```tsx
 import type { Metadata } from 'next';
@@ -668,7 +668,7 @@ Expected: tidak ada error.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add web/app/panel-sanghyang/login/
+git add app/panel-sanghyang/login/
 git commit -m "$(cat <<'EOF'
 Tambah halaman login panel admin
 
@@ -682,7 +682,7 @@ EOF
 ### Task 8: Placeholder dashboard + logout
 
 **Files:**
-- Create: `web/app/panel-sanghyang/page.tsx`
+- Create: `app/panel-sanghyang/page.tsx`
 
 **Interfaces:**
 - Consumes: `logout` dari `@/app/actions/admin-auth` (Task 6); `Button` dari `@/components/ui/button`.
@@ -690,7 +690,7 @@ EOF
 
 - [ ] **Step 1: Tulis halaman**
 
-Buat `web/app/panel-sanghyang/page.tsx`:
+Buat `app/panel-sanghyang/page.tsx`:
 
 ```tsx
 import type { Metadata } from 'next';
@@ -732,7 +732,7 @@ Expected: tidak ada error.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add web/app/panel-sanghyang/page.tsx
+git add app/panel-sanghyang/page.tsx
 git commit -m "$(cat <<'EOF'
 Tambah placeholder dashboard admin dengan tombol keluar
 
@@ -746,7 +746,7 @@ EOF
 ### Task 9: Script bootstrap akun admin pertama
 
 **Files:**
-- Create: `web/scripts/create-admin.ts`
+- Create: `scripts/create-admin.ts`
 
 **Interfaces:**
 - Consumes: `hashPassword` dari `../lib/admin/password.ts` (Task 2).
@@ -754,7 +754,7 @@ EOF
 
 - [ ] **Step 1: Tulis script**
 
-Buat `web/scripts/create-admin.ts`:
+Buat `scripts/create-admin.ts`:
 
 ```ts
 // Bootstrap akun admin pertama. Tidak ada halaman signup publik — jalankan
@@ -795,7 +795,7 @@ Expected: output berisi `Password hash:` diikuti string `scrypt:...`, lalu blok 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add web/scripts/create-admin.ts
+git add scripts/create-admin.ts
 git commit -m "$(cat <<'EOF'
 Tambah script CLI bootstrap akun admin pertama
 
@@ -812,7 +812,7 @@ EOF
 
 **Interfaces:** Tidak ada.
 
-Task ini butuh migrasi `web/db/005_admin_users.sql` (Task 1) **sudah dijalankan manual oleh user** di Supabase SQL Editor, dan `ADMIN_SESSION_SECRET` sudah diisi di `web/.env.local`. Kalau user belum konfirmasi keduanya, hentikan di sini dan tanya dulu — jangan asumsikan sudah dijalankan.
+Task ini butuh migrasi `db/005_admin_users.sql` (Task 1) **sudah dijalankan manual oleh user** di Supabase SQL Editor, dan `ADMIN_SESSION_SECRET` sudah diisi di `.env.local`. Kalau user belum konfirmasi keduanya, hentikan di sini dan tanya dulu — jangan asumsikan sudah dijalankan.
 
 - [ ] **Step 1: Jalankan seluruh test suite**
 

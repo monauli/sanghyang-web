@@ -30,7 +30,7 @@ Dependency baru: **`jose`** saja.
 
 ## Skema database
 
-`web/db/005_admin_users.sql` — **ditulis, TIDAK dijalankan** sampai user review
+`db/005_admin_users.sql` — **ditulis, TIDAK dijalankan** sampai user review
 dan jalankan manual di Supabase SQL Editor (pola yang sama seperti migrasi 001-004).
 
 ```sql
@@ -46,7 +46,7 @@ create table if not exists public.admin_users (
 
 - Tidak ada RLS policy atau GRANT untuk `anon`/`authenticated` — default-deny.
   Tabel ini hanya disentuh lewat `service_role` di server (pola sama seperti
-  `reservation_requests`, lihat `web/db/003_reservation_requests_revoke_anon.sql`).
+  `reservation_requests`, lihat `db/003_reservation_requests_revoke_anon.sql`).
 - `password_hash` format `scrypt:<salt-hex>:<hash-hex>` — salt unik per baris,
   digabung dalam satu string supaya tidak perlu kolom terpisah.
 - Tidak ada kolom `role` — semua admin setara untuk sekarang (YAGNI).
@@ -54,7 +54,7 @@ create table if not exists public.admin_users (
 ## Alur login
 
 1. Staff buka `/panel-sanghyang/login`, isi email + password.
-2. Server Action `login(formData)` di `web/app/actions/admin-auth.ts`:
+2. Server Action `login(formData)` di `app/actions/admin-auth.ts`:
    a. Cari baris `admin_users` by email (service_role client).
    b. Kalau tidak ketemu **ATAU** `locked_until` masih di masa depan → treat
       sebagai gagal (lanjut ke langkah d) tanpa membedakan pesan — mencegah
@@ -93,7 +93,7 @@ sesuatu yang perlu diperbaiki sekarang (YAGNI).
 `middleware.ts` menangani proteksi *halaman* (redirect kalau belum login).
 Tapi Server Action & Route Handler checkpoint-checkpoint berikutnya (simpan
 katalog, upload foto, dll) tetap **wajib** memanggil helper
-`requireAdminSession()` (di `web/lib/admin/auth.ts`) di baris pertama fungsi
+`requireAdminSession()` (di `lib/admin/auth.ts`) di baris pertama fungsi
 masing-masing — defense in depth, jangan asumsikan middleware selalu jalan
 duluan untuk setiap kemungkinan jalur eksekusi. Checkpoint ini hanya
 menyediakan helper-nya; checkpoint berikutnya yang memakainya.
@@ -101,16 +101,16 @@ menyediakan helper-nya; checkpoint berikutnya yang memakainya.
 ## Struktur file
 
 ```
-web/db/005_admin_users.sql              SQL tabel admin_users (review dulu, belum dijalankan)
-web/lib/admin/password.ts               hashPassword(), verifyPassword()
-web/lib/admin/session.ts                createSessionToken(), verifySessionToken() (jose)
-web/lib/admin/auth.ts                   requireAdminSession() — helper untuk Server Action/Route Handler
-web/middleware.ts                       proteksi route + redirect
-web/app/panel-sanghyang/login/page.tsx  halaman login (form, Bahasa Indonesia)
-web/app/actions/admin-auth.ts           Server Action login() & logout()
-web/app/panel-sanghyang/page.tsx        placeholder ("Berhasil login — dashboard menyusul")
-web/scripts/create-admin.ts             CLI bootstrap akun pertama
-web/.env.example                        + ADMIN_SESSION_SECRET (baris baru, kosong)
+db/005_admin_users.sql              SQL tabel admin_users (review dulu, belum dijalankan)
+lib/admin/password.ts               hashPassword(), verifyPassword()
+lib/admin/session.ts                createSessionToken(), verifySessionToken() (jose)
+lib/admin/auth.ts                   requireAdminSession() — helper untuk Server Action/Route Handler
+middleware.ts                       proteksi route + redirect
+app/panel-sanghyang/login/page.tsx  halaman login (form, Bahasa Indonesia)
+app/actions/admin-auth.ts           Server Action login() & logout()
+app/panel-sanghyang/page.tsx        placeholder ("Berhasil login — dashboard menyusul")
+scripts/create-admin.ts             CLI bootstrap akun pertama
+.env.example                        + ADMIN_SESSION_SECRET (baris baru, kosong)
 ```
 
 ## Environment variable baru
@@ -121,7 +121,7 @@ Vercel dashboard (production) sebelum login bisa berfungsi.
 
 ## Testing
 
-- `web/scripts/admin-auth.test.ts` (pola sama seperti
+- `scripts/admin-auth.test.ts` (pola sama seperti
   `scripts/antispam.test.ts` / `scripts/reservation.test.ts`, `node --test`):
   - `hashPassword` + `verifyPassword`: hash password benar → verify sukses;
     password salah → verify gagal; dua hash dari password sama harus beda
