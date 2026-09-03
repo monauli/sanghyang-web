@@ -1,0 +1,203 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * ARAH DESAIN — "Senja Anyer"
+ *
+ * Resort tepi pantai di Anyer, tamu keluarga & pasangan. Tiga bahan:
+ *   pasir   — latar hangat (bukan putih klinis, bukan abu-abu kantor)
+ *   laut    — hijau-laut dalam untuk aksi utama, tenang dan pasti
+ *   senja   — jingga terbakar, dipakai HEMAT: label kecil, satu aksen per layar
+ *
+ * Huruf: Cormorant Garamond untuk judul (tenang, klasik, tidak kaku),
+ * Geist untuk badan teks (mudah dibaca di HP). Sudut lembut, bayangan hangat
+ * dan rendah, gerak pelan. Semua token di bawah dipetakan ke shadcn supaya
+ * komponen bawaan dan kelas tulisan tangan menghasilkan warna yang sama.
+ */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-display);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-sunset: var(--sunset);
+  --color-sea-deep: var(--sea-deep);
+  --color-sand-deep: var(--sand-deep);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+  --shadow-soft: var(--shadow-soft);
+  --shadow-lift: var(--shadow-lift);
+  --ease-soft: var(--ease-soft);
+}
+
+:root {
+  /* Pasir */
+  --background: oklch(0.978 0.007 80);
+  --foreground: oklch(0.25 0.014 55);
+  --sand-deep: oklch(0.93 0.014 78);
+
+  --card: oklch(0.995 0.003 80);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.995 0.003 80);
+  --popover-foreground: var(--foreground);
+
+  /* Laut */
+  --primary: oklch(0.4 0.065 195);
+  --primary-foreground: oklch(0.978 0.007 80);
+  --sea-deep: oklch(0.3 0.055 200);
+
+  --secondary: oklch(0.95 0.012 78);
+  --secondary-foreground: var(--foreground);
+
+  --muted: oklch(0.945 0.012 78);
+  --muted-foreground: oklch(0.45 0.022 65); /* ≥ 6.5:1 di atas pasir */
+
+  --accent: oklch(0.945 0.028 190); /* buih laut */
+  --accent-foreground: oklch(0.32 0.06 198);
+
+  /* Senja — hanya untuk teks kecil & aksen; sudah ≥ 4.5:1 di atas pasir */
+  --sunset: oklch(0.47 0.135 42);
+
+  --destructive: oklch(0.505 0.213 27.518);
+
+  --border: oklch(0.9 0.013 75);
+  --input: oklch(0.85 0.015 75);
+  --ring: oklch(0.52 0.08 195);
+
+  --radius: 0.875rem;
+
+  /* Bayangan hangat: diwarnai cokelat pasir, bukan hitam netral */
+  --shadow-soft:
+    0 1px 2px oklch(0.3 0.03 60 / 0.05),
+    0 10px 28px -12px oklch(0.3 0.04 60 / 0.16);
+  --shadow-lift:
+    0 2px 4px oklch(0.3 0.03 60 / 0.06),
+    0 20px 40px -16px oklch(0.3 0.04 60 / 0.24);
+
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+  html {
+    @apply font-sans;
+    /* Anchor #reservasi tidak boleh tersembunyi di balik header sticky. */
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+  }
+  h1,
+  h2 {
+    font-family: var(--font-display), Georgia, "Times New Roman", serif;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    line-height: 1.08;
+    text-wrap: balance;
+  }
+  ::selection {
+    background: oklch(0.85 0.06 190);
+  }
+}
+
+@layer components {
+  /* Skala judul — satu sumber, dipakai semua halaman */
+  .display {
+    font-size: clamp(3rem, 8.5vw, 6rem);
+    line-height: 1;
+  }
+  .title-page {
+    font-size: clamp(2.25rem, 5vw, 3.5rem);
+  }
+  .title-section {
+    font-size: clamp(1.75rem, 3.6vw, 2.5rem);
+  }
+
+  /* Label kecil di atas judul — satu-satunya tempat warna senja dipakai rutin */
+  .eyebrow {
+    @apply font-sans text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-sunset;
+  }
+  .eyebrow-light {
+    @apply font-sans text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-white/85;
+  }
+
+  /* Kartu standar */
+  .card-surface {
+    @apply overflow-hidden rounded-2xl bg-card shadow-soft ring-1 ring-foreground/[0.06] transition-[box-shadow,transform] duration-300 ease-soft;
+  }
+  .card-surface-hover {
+    @apply hover:-translate-y-0.5 hover:shadow-lift;
+  }
+
+  /* Tombol pil utama */
+  .btn-pill {
+    @apply h-12 rounded-full px-7 text-[0.95rem] font-medium shadow-soft transition-[background-color,transform,box-shadow] duration-200 ease-soft active:scale-[0.98];
+  }
+}
+
+/* Masuk lembut untuk isi hero */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.rise {
+  animation: rise 0.7s var(--ease-soft) both;
+}
+.rise-2 {
+  animation-delay: 0.12s;
+}
+.rise-3 {
+  animation-delay: 0.24s;
+}
+.rise-4 {
+  animation-delay: 0.36s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.01ms !important;
+  }
+}
