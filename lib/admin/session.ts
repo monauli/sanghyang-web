@@ -6,7 +6,18 @@ const SESSION_DURATION_SECONDS = 8 * 60 * 60; // 8 jam
 export const SESSION_COOKIE_NAME = 'sanghyang_admin_session';
 export const SESSION_MAX_AGE_SECONDS = SESSION_DURATION_SECONDS;
 
-export type SessionPayload = { sub: string; email: string };
+export type AdminRole = 'owner' | 'captain';
+
+export type SessionPayload = {
+  sub: string;
+  email: string;
+  role: AdminRole;
+  /** null untuk pemilik. */
+  outletId: string | null;
+  /** services.id milik outlet tersebut; null untuk pemilik. Dipakai memfilter
+   *  reservation_requests. */
+  serviceId: string | null;
+};
 
 function secretKey(): Uint8Array {
   const secret = process.env.ADMIN_SESSION_SECRET;
@@ -26,7 +37,20 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
   try {
     const { payload } = await jwtVerify(token, secretKey(), { algorithms: [ALG] });
     if (typeof payload.sub !== 'string' || typeof payload.email !== 'string') return null;
-    return { sub: payload.sub, email: payload.email };
+
+    const role = payload.role;
+    if (role !== 'owner' && role !== 'captain') return null;
+
+    const outletId = payload.outletId ?? null;
+    const serviceId = payload.serviceId ?? null;
+    if (outletId !== null && typeof outletId !== 'string') return null;
+    if (serviceId !== null && typeof serviceId !== 'string') return null;
+
+    // Captain wajib punya keduanya: tanpa serviceId, filter outlet tidak punya
+    // nilai dan captain bisa melihat semua reservasi.
+    if (role === 'captain' && (!outletId || !serviceId)) return null;
+
+    return { sub: payload.sub, email: payload.email, role, outletId, serviceId };
   } catch {
     return null;
   }
