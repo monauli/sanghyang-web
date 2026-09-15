@@ -1,7 +1,7 @@
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { SessionPayload } from './admin/session';
-import type { Outlet } from './types';
+import type { SessionPayload } from '@/lib/admin/session';
+import type { Outlet } from '@/lib/types';
 
 export type OutletWithSlug = Outlet & { slug: string };
 

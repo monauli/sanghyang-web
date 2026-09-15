@@ -43,7 +43,7 @@ async function loadFromSupabase(reservationId: string): Promise<NoticeRow | null
     .select(
       'id, service_id, customer_name, customer_email, customer_phone, reservation_date, ' +
         'checkout_date, guests, notes, item:service_items(name), ' +
-        'outlet:outlets(name, notify_email, is_active)'
+        'service:services(outlet:outlets(name, notify_email, is_active))'
     )
     .eq('id', reservationId)
     .maybeSingle();
@@ -52,7 +52,12 @@ async function loadFromSupabase(reservationId: string): Promise<NoticeRow | null
     console.error(`[notify] gagal membaca reservasi ${reservationId}: ${error?.message ?? 'tidak ditemukan'}`);
     return null;
   }
-  return data as unknown as NoticeRow;
+
+  const raw = data as unknown as Omit<NoticeRow, 'outlet'> & {
+    service: { outlet: NoticeRow['outlet'] } | null;
+  };
+  const { service, ...rest } = raw;
+  return { ...rest, outlet: service?.outlet ?? null };
 }
 
 export async function sendReservationNotice(

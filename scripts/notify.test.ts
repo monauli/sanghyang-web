@@ -24,6 +24,10 @@ test('nomor tidak valid -> null', () => {
   assert.equal(normalizePhone('0812345678901234567890'), null); // terlalu panjang
 });
 
+test('nomor luar negeri (bukan +62) -> null, tidak dipaksa jadi nomor Indonesia', () => {
+  assert.equal(normalizePhone('+65 8123 4567'), null);
+});
+
 test('waLink membentuk URL dengan pesan ter-encode', () => {
   const link = waLink('0812 3456 7890', 'Halo Budi, terima kasih & salam');
   assert.equal(

@@ -4,12 +4,15 @@
  * tanpa tanda apa pun, jadi dinormalkan di sini — satu tempat.
  */
 
-const MIN_DIGITS = 9;
-const MAX_DIGITS = 15;
+const MIN_LOCAL_DIGITS = 7;
+const MAX_LOCAL_DIGITS = 13;
 
 export function normalizePhone(raw: string): string | null {
   const digits = (raw ?? '').replace(/[^\d+]/g, '');
   if (!digits) return null;
+
+  // "+" diikuti kode negara selain 62 -> jangan dipaksa jadi nomor Indonesia.
+  if (digits.startsWith('+') && !digits.startsWith('+62')) return null;
 
   let local: string;
   if (digits.startsWith('+62')) local = digits.slice(3);
@@ -18,7 +21,7 @@ export function normalizePhone(raw: string): string | null {
   else local = digits;
 
   local = local.replace(/\D/g, '');
-  if (local.length < MIN_DIGITS - 2 || local.length > MAX_DIGITS - 2) return null;
+  if (local.length < MIN_LOCAL_DIGITS || local.length > MAX_LOCAL_DIGITS) return null;
 
   return `62${local}`;
 }

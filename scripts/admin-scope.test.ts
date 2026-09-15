@@ -1,4 +1,4 @@
-// node --test scripts/admin-scope.test.ts
+// node --conditions=react-server --test scripts/admin-scope.test.ts
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { sessionFromAdminRow } from '../lib/admin/row-to-session.ts';
@@ -77,4 +77,28 @@ test('captain DBC TIDAK boleh mengakses outlet lain', () => {
 
 test('captain ditolak untuk serviceId kosong', () => {
   assert.equal(canAccessService(CAPTAIN_DBC, ''), false);
+});
+
+import { reservationQuery } from '../lib/admin/scope.ts';
+
+function fakeSupabase() {
+  const calls: Array<{ method: string; args: unknown[] }> = [];
+  const builder = {
+    select: (...args: unknown[]) => { calls.push({ method: 'select', args }); return builder; },
+    eq: (...args: unknown[]) => { calls.push({ method: 'eq', args }); return builder; },
+  };
+  return { from: () => builder, calls };
+}
+
+test('reservationQuery: captain difilter ke outletnya sendiri', () => {
+  const fake = fakeSupabase();
+  reservationQuery(CAPTAIN_DBC, fake as never);
+  const eqCall = fake.calls.find((c) => c.method === 'eq');
+  assert.deepEqual(eqCall?.args, ['service_id', CAPTAIN_DBC.serviceId]);
+});
+
+test('reservationQuery: pemilik tidak difilter sama sekali', () => {
+  const fake = fakeSupabase();
+  reservationQuery(OWNER, fake as never);
+  assert.equal(fake.calls.some((c) => c.method === 'eq'), false);
 });
