@@ -9,6 +9,7 @@ import {
   SESSION_COOKIE_NAME,
   SESSION_MAX_AGE_SECONDS,
 } from '@/lib/admin/session';
+import { sessionFromAdminRow } from '@/lib/admin/row-to-session';
 
 export type LoginState = { error: string | null };
 
@@ -29,6 +30,8 @@ type AdminRow = {
   password_hash: string;
   failed_attempts: number;
   locked_until: string | null;
+  outlet_id: string | null;
+  outlet: { id: string; service_id: string } | null;
 };
 
 export async function login(_prev: LoginState, formData: FormData): Promise<LoginState> {
@@ -45,7 +48,9 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
 
   const { data } = await supabase
     .from('admin_users')
-    .select('id, email, password_hash, failed_attempts, locked_until')
+    .select(
+      'id, email, password_hash, failed_attempts, locked_until, outlet_id, outlet:outlets(id, service_id)'
+    )
     .eq('email', email)
     .maybeSingle();
   const admin = data as AdminRow | null;
@@ -82,7 +87,13 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     .update({ failed_attempts: 0, locked_until: null })
     .eq('id', admin.id);
 
-  const token = await createSessionToken({ sub: admin.id, email: admin.email });
+  const sesi = sessionFromAdminRow(admin);
+  if (!sesi) {
+    console.error(`[admin] akun ${admin.id} punya outlet_id tanpa outlet yang sah`);
+    return { error: 'Akun Anda belum lengkap. Hubungi pengelola.' };
+  }
+
+  const token = await createSessionToken(sesi);
   (await cookies()).set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
