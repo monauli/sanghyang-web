@@ -109,3 +109,63 @@ test('checkout_date ikut ditampilkan kalau ada', () => {
   });
   assert.match(text, /14 Okt(ober)? 2026/);
 });
+
+import { sendReservationNotice } from '../lib/notify/send-reservation-notice.ts';
+
+const ROW_LENGKAP = {
+  id: 'res-1',
+  service_id: 'service-dbc',
+  customer_name: 'Budi Santoso',
+  customer_email: 'budi@example.com',
+  customer_phone: '0812 3456 7890',
+  reservation_date: '2026-10-12',
+  checkout_date: null,
+  guests: 4,
+  notes: null,
+  item: null,
+  outlet: { name: 'Dragon Beach Club', notify_email: 'dbc@sanghyang.com', is_active: true },
+};
+
+test('kegagalan kirim email tidak melempar keluar', async () => {
+  const gagal = () => Promise.reject(new Error('SMTP mati'));
+  await assert.doesNotReject(() =>
+    sendReservationNotice('res-1', {
+      sendMail: gagal,
+      loadReservation: () => Promise.resolve(ROW_LENGKAP),
+    })
+  );
+});
+
+test('email dikirim ke notify_email outlet', async () => {
+  const terkirim: Array<{ to: string; subject: string }> = [];
+  await sendReservationNotice('res-1', {
+    sendMail: async ({ to, subject }) => {
+      terkirim.push({ to, subject });
+    },
+    loadReservation: () => Promise.resolve(ROW_LENGKAP),
+  });
+  assert.equal(terkirim.length, 1);
+  assert.equal(terkirim[0].to, 'dbc@sanghyang.com');
+  assert.match(terkirim[0].subject, /Dragon Beach Club/);
+});
+
+test('notify_email kosong -> tidak mengirim, tidak melempar', async () => {
+  let dipanggil = 0;
+  await assert.doesNotReject(() =>
+    sendReservationNotice('res-1', {
+      sendMail: async () => {
+        dipanggil += 1;
+      },
+      loadReservation: () =>
+        Promise.resolve({ ...ROW_LENGKAP, outlet: { ...ROW_LENGKAP.outlet, notify_email: null } }),
+    })
+  );
+  assert.equal(dipanggil, 0);
+});
+
+test('env SMTP kosong -> tidak melempar', async () => {
+  const sebelumnya = process.env.SMTP_USER;
+  delete process.env.SMTP_USER;
+  await assert.doesNotReject(() => sendReservationNotice('res-1'));
+  if (sebelumnya !== undefined) process.env.SMTP_USER = sebelumnya;
+});
