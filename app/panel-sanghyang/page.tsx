@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { logout } from '@/app/actions/admin-auth';
 import { Button } from '@/components/ui/button';
 
@@ -19,10 +20,14 @@ export default function AdminDashboardPage() {
             </Button>
           </form>
         </div>
-        <p className="mt-4 text-sm text-muted-foreground">
-          Berhasil login. Ringkasan reservasi, kelola katalog, dan kelola konten
-          menyusul di checkpoint berikutnya.
-        </p>
+        <nav className="mt-4 flex flex-col gap-2 text-sm">
+          <Link href="/panel-sanghyang/reservasi" className="underline underline-offset-4">
+            Reservasi masuk
+          </Link>
+          <Link href="/panel-sanghyang/pengaturan" className="underline underline-offset-4">
+            Pengaturan notifikasi & link outlet
+          </Link>
+        </nav>
       </div>
     </main>
   );

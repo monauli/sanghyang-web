@@ -2,6 +2,7 @@
 
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { after } from 'next/server';
 import { getAdminClient } from '@/lib/supabase/admin';
 import {
   echoValues,
@@ -10,6 +11,7 @@ import {
   type FieldErrors,
 } from '@/lib/reservation';
 import { checkSubmission, clientIp } from '@/lib/antispam';
+import { sendReservationNotice } from '@/lib/notify/send-reservation-notice';
 
 export type ReservationState = { errors: FieldErrors; values?: EchoValues };
 
@@ -40,10 +42,14 @@ export async function submitReservation(
   const supabase = getAdminClient();
   if (!supabase) return { errors: { form: 'Server belum siap menerima reservasi.' }, values };
 
-  const { error } = await supabase.from('reservation_requests').insert(parsed.data);
+  const { data: inserted, error } = await supabase
+    .from('reservation_requests')
+    .insert(parsed.data)
+    .select('id')
+    .single();
 
-  if (error) {
-    console.error('[supabase] submitReservation:', error.message);
+  if (error || !inserted) {
+    console.error('[supabase] submitReservation:', error?.message ?? 'insert tidak mengembalikan baris');
     return {
       errors: {
         form: 'Permintaan gagal dikirim. Coba lagi sebentar lagi, atau hubungi kami langsung.',
@@ -51,6 +57,12 @@ export async function submitReservation(
       values,
     };
   }
+
+  // Notifikasi dikirim SETELAH respons sampai ke tamu: tamu tidak menunggu
+  // SMTP, dan kegagalan kirim tidak boleh menggagalkan reservasi yang sudah
+  // tersimpan. after() harus didaftarkan sebelum redirect() — redirect
+  // bekerja dengan melempar.
+  after(() => sendReservationNotice(inserted.id));
 
   redirect('/reservasi/terkirim');
 }

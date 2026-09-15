@@ -46,6 +46,18 @@ export function ReservationPanel({ service, items }: { service: PanelService; it
   const [room, setRoom] = useState<RoomOption | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
+  // Link barcode outlet berbentuk /kategori/<slug>?reservasi=1 supaya tamu
+  // yang scan langsung disuguhi formnya. Dibaca dari window, BUKAN dengan
+  // useSearchParams: halaman kategori di-prerender, dan membaca search params
+  // di server akan mematikan prerender itu.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('reservasi') === '1') {
+      // Membuka dialog dari URL sekali di mount, bukan mensinkronkan state React.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setOpen(true);
+    }
+  }, []);
+
   // Token anti-bot diambil saat dialog dibuka — halaman ini di-prerender, jadi
   // token yang ditanam ke HTML statis sudah basi sebelum sempat dipakai.
   useEffect(() => {

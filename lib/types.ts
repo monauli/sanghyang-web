@@ -10,6 +10,14 @@ export type Service = {
   booking_method: BookingMethod;
 };
 
+export type Outlet = {
+  id: string;
+  service_id: string;
+  name: string;
+  notify_email: string | null;
+  is_active: boolean;
+};
+
 export type ServiceItem = {
   id: string;
   service_id: string;
