@@ -601,7 +601,7 @@ git commit -m "Tambah input foto dengan kompresi otomatis di browser"
 
 **Interfaces:**
 - Consumes: `requireScopedClient` (`lib/admin/scope.ts`), `listServicesAdmin` (`lib/katalog/queries.ts`), `slugify`/`uniqueSlug` (`lib/katalog/slug.ts`), `uploadKatalogFoto`/`deleteFotoJikaMilikKita`/`FotoError` (`lib/katalog/photo.ts`).
-- Produces: `type KatalogFormState = { error: string | null }`, `simpanKategori(prevState: KatalogFormState, formData: FormData): Promise<KatalogFormState>` — dipakai lewat `useActionState` di Task 8.
+- Produces: `type KatalogFormState = { error: string | null; success: boolean }`, `simpanKategori(prevState: KatalogFormState, formData: FormData): Promise<KatalogFormState>` — dipakai lewat `useActionState` di Task 8. `success: true` HANYA dipakai jalur update-tanpa-redirect (create langsung `redirect()`, jadi form-nya sendiri tidak sempat merender status sukses); form menampilkan pesan "Tersimpan." saat `success` true.
 
 - [ ] **Step 1: Tulis `app/actions/admin-katalog.ts`**
 
@@ -615,14 +615,14 @@ import { listServicesAdmin } from '@/lib/katalog/queries';
 import { slugify, uniqueSlug } from '@/lib/katalog/slug';
 import { uploadKatalogFoto, deleteFotoJikaMilikKita, FotoError } from '@/lib/katalog/photo';
 
-export type KatalogFormState = { error: string | null };
+export type KatalogFormState = { error: string | null; success: boolean };
 
 export async function simpanKategori(
   _prevState: KatalogFormState,
   formData: FormData
 ): Promise<KatalogFormState> {
   const { session, supabase } = await requireScopedClient();
-  if (session.role !== 'owner') return { error: 'Khusus pemilik.' };
+  if (session.role !== 'owner') return { error: 'Khusus pemilik.', success: false };
 
   const id = String(formData.get('id') ?? '').trim() || null;
   const name = String(formData.get('name') ?? '').trim();
@@ -632,7 +632,7 @@ export async function simpanKategori(
   const currentPhotoUrl = String(formData.get('current_photo_url') ?? '') || null;
   const photo = formData.get('photo');
 
-  if (name.length < 2) return { error: 'Nama kategori minimal 2 karakter.' };
+  if (name.length < 2) return { error: 'Nama kategori minimal 2 karakter.', success: false };
 
   // Rooms (booking_method = 'exely') dikunci: form ini tidak boleh pernah
   // mengubahnya jadi self_service, apa pun isi checkbox-nya (lihat Global
@@ -645,7 +645,7 @@ export async function simpanKategori(
     try {
       photoUrl = await uploadKatalogFoto(supabase, photo);
     } catch (err) {
-      return { error: err instanceof FotoError ? err.message : 'Upload foto gagal.' };
+      return { error: err instanceof FotoError ? err.message : 'Upload foto gagal.', success: false };
     }
   }
 
@@ -659,7 +659,7 @@ export async function simpanKategori(
     if (photoUrl) update.photo_url = photoUrl;
 
     const { error } = await supabase.from('services').update(update).eq('id', id);
-    if (error) return { error: `Gagal menyimpan: ${error.message}` };
+    if (error) return { error: `Gagal menyimpan: ${error.message}`, success: false };
 
     if (photoUrl) await deleteFotoJikaMilikKita(supabase, currentPhotoUrl);
 
@@ -668,7 +668,7 @@ export async function simpanKategori(
     revalidatePath('/');
     revalidatePath('/fasilitas');
     revalidatePath('/kategori/[slug]', 'page');
-    return { error: null };
+    return { error: null, success: true };
   }
 
   const existing = await listServicesAdmin(supabase);
@@ -689,7 +689,9 @@ export async function simpanKategori(
     })
     .select('id')
     .single();
-  if (error || !data) return { error: `Gagal menyimpan: ${error?.message ?? 'tidak diketahui'}` };
+  if (error || !data) {
+    return { error: `Gagal menyimpan: ${error?.message ?? 'tidak diketahui'}`, success: false };
+  }
 
   revalidatePath('/panel-sanghyang/katalog');
   revalidatePath('/');
@@ -733,7 +735,7 @@ import { simpanKategori, type KatalogFormState } from '@/app/actions/admin-katal
 import { CompressedPhotoInput } from '@/components/compressed-photo-input';
 import type { Service } from '@/lib/types';
 
-const initialState: KatalogFormState = { error: null };
+const initialState: KatalogFormState = { error: null, success: false };
 const FIELD = 'mt-1 w-full rounded-md border border-border bg-card px-3 py-2 text-sm';
 
 export function KategoriForm({ service }: { service?: Service }) {
@@ -795,6 +797,7 @@ export function KategoriForm({ service }: { service?: Service }) {
       )}
 
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}
+      {state.success && <p className="text-sm text-primary">Tersimpan.</p>}
 
       <button
         type="submit"
@@ -1065,7 +1068,7 @@ export async function simpanItem(
   formData: FormData
 ): Promise<KatalogFormState> {
   const { session, supabase } = await requireScopedClient();
-  if (session.role !== 'owner') return { error: 'Khusus pemilik.' };
+  if (session.role !== 'owner') return { error: 'Khusus pemilik.', success: false };
 
   const id = String(formData.get('id') ?? '').trim() || null;
   const serviceId = String(formData.get('service_id') ?? '').trim();
@@ -1075,18 +1078,18 @@ export async function simpanItem(
   const currentPhotoUrl = String(formData.get('current_photo_url') ?? '') || null;
   const photo = formData.get('photo');
 
-  if (!serviceId) return { error: 'Kategori tidak valid.' };
-  if (name.length < 2) return { error: 'Nama item minimal 2 karakter.' };
+  if (!serviceId) return { error: 'Kategori tidak valid.', success: false };
+  if (name.length < 2) return { error: 'Nama item minimal 2 karakter.', success: false };
 
   const price = parsePrice(priceRaw);
-  if (price === null) return { error: 'Harga tidak valid.' };
+  if (price === null) return { error: 'Harga tidak valid.', success: false };
 
   let photoUrl: string | undefined;
   if (photo instanceof File && photo.size > 0) {
     try {
       photoUrl = await uploadKatalogFoto(supabase, photo);
     } catch (err) {
-      return { error: err instanceof FotoError ? err.message : 'Upload foto gagal.' };
+      return { error: err instanceof FotoError ? err.message : 'Upload foto gagal.', success: false };
     }
   }
 
@@ -1095,7 +1098,7 @@ export async function simpanItem(
     if (photoUrl) update.photo_url = photoUrl;
 
     const { error } = await supabase.from('service_items').update(update).eq('id', id);
-    if (error) return { error: `Gagal menyimpan: ${error.message}` };
+    if (error) return { error: `Gagal menyimpan: ${error.message}`, success: false };
 
     if (photoUrl) await deleteFotoJikaMilikKita(supabase, currentPhotoUrl);
   } else {
@@ -1107,7 +1110,7 @@ export async function simpanItem(
       photo_url: photoUrl ?? null,
       is_active: true,
     });
-    if (error) return { error: `Gagal menyimpan: ${error.message}` };
+    if (error) return { error: `Gagal menyimpan: ${error.message}`, success: false };
   }
 
   revalidatePath(`/panel-sanghyang/katalog/${serviceId}`);
@@ -1151,7 +1154,7 @@ import { simpanItem, type KatalogFormState } from '@/app/actions/admin-katalog';
 import { CompressedPhotoInput } from '@/components/compressed-photo-input';
 import type { ServiceItem } from '@/lib/types';
 
-const initialState: KatalogFormState = { error: null };
+const initialState: KatalogFormState = { error: null, success: false };
 const FIELD = 'mt-1 w-full rounded-md border border-border bg-card px-3 py-2 text-sm';
 
 export function ItemForm({ serviceId, item }: { serviceId: string; item?: ServiceItem }) {
