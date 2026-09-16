@@ -2,13 +2,16 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { logout } from '@/app/actions/admin-auth';
 import { Button } from '@/components/ui/button';
+import { requireScopedClient } from '@/lib/admin/scope';
 
 export const metadata: Metadata = {
   title: 'Panel Admin',
   robots: { index: false, follow: false },
 };
 
-export default function AdminDashboardPage() {
+export default async function AdminDashboardPage() {
+  const { session } = await requireScopedClient();
+
   return (
     <main className="min-h-screen bg-muted p-6">
       <div className="mx-auto max-w-2xl rounded-2xl border border-border bg-card p-6">
@@ -27,6 +30,11 @@ export default function AdminDashboardPage() {
           <Link href="/panel-sanghyang/pengaturan" className="underline underline-offset-4">
             Pengaturan notifikasi & link outlet
           </Link>
+          {session.role === 'owner' && (
+            <Link href="/panel-sanghyang/konten" className="underline underline-offset-4">
+              Kelola konten
+            </Link>
+          )}
         </nav>
       </div>
     </main>
