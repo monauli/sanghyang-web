@@ -6,10 +6,10 @@
 
 /** Slug di services.type -> nama outlet yang tampil di dashboard. */
 const OUTLETS: Array<{ slug: string; name: string }> = [
-  { slug: 'dbistro', name: "D'Bistro" },
+  { slug: 'd-bistro', name: "D'Bistro" },
   { slug: 'sunset-grill', name: 'Sunset Grill' },
-  { slug: 'dspa', name: "D'Spa" },
-  { slug: 'dbar-karaoke', name: "D'Bar & Karaoke" },
+  { slug: 'd-spa', name: "D'Spa" },
+  { slug: 'd-bar-karaoke', name: "D'Bar & Karaoke" },
   { slug: 'dragon-beach-club', name: 'Dragon Beach Club' },
 ];
 
