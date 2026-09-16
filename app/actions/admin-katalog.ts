@@ -1,0 +1,92 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { requireScopedClient } from '@/lib/admin/scope';
+import { listServicesAdmin } from '@/lib/katalog/queries';
+import { slugify, uniqueSlug } from '@/lib/katalog/slug';
+import { uploadKatalogFoto, deleteFotoJikaMilikKita, FotoError } from '@/lib/katalog/photo';
+
+export type KatalogFormState = { error: string | null; success: boolean };
+
+export async function simpanKategori(
+  _prevState: KatalogFormState,
+  formData: FormData
+): Promise<KatalogFormState> {
+  const { session, supabase } = await requireScopedClient();
+  if (session.role !== 'owner') return { error: 'Khusus pemilik.', success: false };
+
+  const id = String(formData.get('id') ?? '').trim() || null;
+  const name = String(formData.get('name') ?? '').trim();
+  const description = String(formData.get('description') ?? '').trim();
+  const isBookable = formData.get('is_bookable') === 'on';
+  const currentBookingMethod = String(formData.get('current_booking_method') ?? '');
+  const currentPhotoUrl = String(formData.get('current_photo_url') ?? '') || null;
+  const photo = formData.get('photo');
+
+  if (name.length < 2) return { error: 'Nama kategori minimal 2 karakter.', success: false };
+
+  // Rooms (booking_method = 'exely') dikunci: form ini tidak boleh pernah
+  // mengubahnya jadi self_service, apa pun isi checkbox-nya (lihat Global
+  // Constraints di plan ini).
+  const bookingMethod = currentBookingMethod === 'exely' ? 'exely' : 'self_service';
+  const isBookableFinal = currentBookingMethod === 'exely' ? true : isBookable;
+
+  let photoUrl: string | undefined;
+  if (photo instanceof File && photo.size > 0) {
+    try {
+      photoUrl = await uploadKatalogFoto(supabase, photo);
+    } catch (err) {
+      return { error: err instanceof FotoError ? err.message : 'Upload foto gagal.', success: false };
+    }
+  }
+
+  if (id) {
+    const update: Record<string, unknown> = {
+      name,
+      description: description || null,
+      is_bookable: isBookableFinal,
+      booking_method: bookingMethod,
+    };
+    if (photoUrl) update.photo_url = photoUrl;
+
+    const { error } = await supabase.from('services').update(update).eq('id', id);
+    if (error) return { error: `Gagal menyimpan: ${error.message}`, success: false };
+
+    if (photoUrl) await deleteFotoJikaMilikKita(supabase, currentPhotoUrl);
+
+    revalidatePath('/panel-sanghyang/katalog');
+    revalidatePath(`/panel-sanghyang/katalog/${id}`);
+    revalidatePath('/');
+    revalidatePath('/fasilitas');
+    revalidatePath('/kategori/[slug]', 'page');
+    return { error: null, success: true };
+  }
+
+  const existing = await listServicesAdmin(supabase);
+  const slug = uniqueSlug(
+    slugify(name),
+    existing.map((s) => s.type)
+  );
+
+  const { data, error } = await supabase
+    .from('services')
+    .insert({
+      type: slug,
+      name,
+      description: description || null,
+      is_bookable: isBookableFinal,
+      booking_method: bookingMethod,
+      photo_url: photoUrl ?? null,
+    })
+    .select('id')
+    .single();
+  if (error || !data) {
+    return { error: `Gagal menyimpan: ${error?.message ?? 'tidak diketahui'}`, success: false };
+  }
+
+  revalidatePath('/panel-sanghyang/katalog');
+  revalidatePath('/');
+  revalidatePath('/fasilitas');
+  redirect(`/panel-sanghyang/katalog/${data.id}`);
+}
