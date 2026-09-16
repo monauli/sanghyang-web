@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { CSSProperties } from 'react';
 import type { Metadata } from 'next';
 import { ArrowDown, ShieldCheck } from 'lucide-react';
 import { CategoryCard } from '@/components/category-card';
@@ -6,7 +7,7 @@ import { EmptyState } from '@/components/empty-state';
 import { Photo } from '@/components/photo';
 import { SectionHeading } from '@/components/section-heading';
 import { Button } from '@/components/ui/button';
-import { getServices } from '@/lib/supabase/queries';
+import { getHeroPhotos, getServices } from '@/lib/supabase/queries';
 import { SITE_NAME, SITE_TAGLINE, defaultOgImage, pageMetadata } from '@/lib/seo';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -20,15 +21,38 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Home() {
-  const [services, heroPhoto] = await Promise.all([getServices(), defaultOgImage()]);
+  const [services, heroPhotosRaw, fallbackPhoto] = await Promise.all([
+    getServices(),
+    getHeroPhotos(),
+    defaultOgImage(),
+  ]);
   const bookable = services.filter((s) => s.is_bookable);
   const infoOnly = services.filter((s) => !s.is_bookable);
+
+  // Kurasi bisa kosong (kategori belum diisi foto) — jatuh balik ke satu foto
+  // yang sama dipakai og:image, biar hero tidak pernah tampil polos.
+  const heroPhotos = heroPhotosRaw.length > 0 ? heroPhotosRaw : fallbackPhoto ? [fallbackPhoto] : [];
 
   return (
     <>
       {/* ---- Layar pertama: foto penuh, teks di bawah, tepi bawah melengkung ---- */}
-      <section className="relative isolate flex min-h-[82svh] items-end overflow-hidden sm:min-h-[88svh] sm:rounded-b-[2.5rem]">
-        <Photo src={heroPhoto} alt="" sizes="100vw" priority />
+      <section
+        className="relative isolate flex min-h-[82svh] items-end overflow-hidden sm:min-h-[88svh] sm:rounded-b-[2.5rem]"
+        style={{ '--hero-slide-count': heroPhotos.length } as CSSProperties}
+      >
+        {heroPhotos.length <= 1 ? (
+          <Photo src={heroPhotos[0] ?? null} alt="" sizes="100vw" priority />
+        ) : (
+          heroPhotos.map((url, i) => (
+            <div
+              key={url}
+              className="hero-slide absolute inset-0"
+              style={{ animationDelay: `${i * 5}s` }}
+            >
+              <Photo src={url} alt="" sizes="100vw" priority={i === 0} />
+            </div>
+          ))
+        )}
         {/* Dua lapis overlay: satu meratakan foto seterang apa pun, satu lagi
             menggelapkan bagian bawah tempat teks berada. Warnanya hijau-laut,
             bukan hitam, supaya tetap satu keluarga dengan palet. */}

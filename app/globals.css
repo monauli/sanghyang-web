@@ -201,3 +201,42 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Slideshow hero Home: beberapa foto ditumpuk, gantian muncul lewat CSS
+   murni (tanpa JS) — masing-masing punya animation-delay berbeda supaya
+   bergiliran. Durasi dibagi rata per jumlah foto lewat --hero-slide-count,
+   diisi inline dari app/page.tsx supaya jeda antar foto konsisten berapa
+   pun jumlah fotonya. */
+@keyframes hero-slide {
+  0% {
+    opacity: 0;
+  }
+  2% {
+    opacity: 1;
+  }
+  23% {
+    opacity: 1;
+  }
+  25%,
+  100% {
+    opacity: 0;
+  }
+}
+.hero-slide {
+  opacity: 0;
+  animation: hero-slide calc(var(--hero-slide-count, 4) * 5s) linear infinite;
+}
+
+/* Generic reduced-motion di atas cuma mempercepat animasi (0.01ms), bukan
+   mematikannya — untuk crossfade yang mengulang terus itu berarti kedip
+   cepat tanpa henti, bukan foto diam. Ini kelas spesifik jadi harus
+   ditimpa eksplisit: satu foto pertama diam, sisanya disembunyikan. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-slide {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+  .hero-slide:first-child {
+    opacity: 1 !important;
+  }
+}

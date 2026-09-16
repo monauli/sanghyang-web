@@ -65,6 +65,33 @@ export async function getItemsByServiceIds(serviceIds: string[]): Promise<Servic
   return (data as ServiceItem[] | null) ?? [];
 }
 
+/**
+ * Foto slideshow hero Home — kurasi manual, bukan ambil sembarang kategori,
+ * supaya campuran suasananya konsisten (kamar, DBC malam, kolam, spa).
+ * Kategori yang fotonya kosong dilewat, bukan bikin error — slideshow tetap
+ * jalan dengan foto yang ada, walau cuma tersisa satu.
+ */
+const HERO_SLIDE_TYPES = ['rooms', 'dragon-beach-club', 'swimming-pool', 'd-spa'];
+
+export async function getHeroPhotos(): Promise<string[]> {
+  const supabase = getPublicClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('services')
+    .select('type, photo_url')
+    .in('type', HERO_SLIDE_TYPES);
+  logError('getHeroPhotos', error);
+
+  const byType = new Map(
+    ((data as { type: string; photo_url: string | null }[] | null) ?? []).map((s) => [
+      s.type,
+      s.photo_url,
+    ])
+  );
+  return HERO_SLIDE_TYPES.map((t) => byType.get(t)).filter((url): url is string => Boolean(url));
+}
+
 export async function getSiteContent(): Promise<SiteContent> {
   const supabase = getPublicClient();
   if (!supabase) return {};
