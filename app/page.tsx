@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import type { Metadata } from 'next';
-import { ArrowDown, ShieldCheck } from 'lucide-react';
+import { ArrowDown } from 'lucide-react';
 import { CategoryCard } from '@/components/category-card';
 import { EmptyState } from '@/components/empty-state';
 import { Photo } from '@/components/photo';
-import { SectionHeading } from '@/components/section-heading';
+import { TornEdge } from '@/components/torn-edge';
 import { Button } from '@/components/ui/button';
 import { getHeroPhotos, getServices } from '@/lib/supabase/queries';
 import { SITE_NAME, SITE_TAGLINE, defaultOgImage, pageMetadata } from '@/lib/seo';
@@ -27,7 +27,6 @@ export default async function Home() {
     defaultOgImage(),
   ]);
   const bookable = services.filter((s) => s.is_bookable);
-  const infoOnly = services.filter((s) => !s.is_bookable);
 
   // Kurasi bisa kosong (kategori belum diisi foto) — jatuh balik ke satu foto
   // yang sama dipakai og:image, biar hero tidak pernah tampil polos.
@@ -35,9 +34,9 @@ export default async function Home() {
 
   return (
     <>
-      {/* ---- Layar pertama: foto penuh, teks di bawah, tepi bawah melengkung ---- */}
+      {/* ---- Hero: satu foto, nav menumpuk di atasnya, tepi bawah robekan kertas ---- */}
       <section
-        className="relative isolate flex min-h-[82svh] items-end overflow-hidden sm:min-h-[88svh] sm:rounded-b-[2.5rem]"
+        className="relative isolate flex min-h-[82svh] items-end overflow-hidden sm:min-h-[88svh]"
         style={{ '--hero-slide-count': heroPhotos.length } as CSSProperties}
       >
         {heroPhotos.length <= 1 ? (
@@ -83,67 +82,24 @@ export default async function Home() {
             </Button>
           </div>
         </div>
+
+        <TornEdge flip className="text-background" />
       </section>
 
-      {/* ---- Bilah keyakinan: apa saja yang ada, langsung dari data ---- */}
-      {bookable.length > 0 && (
-        <div className="mx-auto max-w-6xl px-5 sm:px-8">
-          <ul className="-mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 rounded-2xl bg-card px-5 py-4 text-sm shadow-soft ring-1 ring-foreground/[0.06] sm:-mt-8 sm:gap-x-8 sm:py-5">
-            <li className="inline-flex items-center gap-2 font-medium text-primary">
-              <ShieldCheck className="size-4" aria-hidden="true" />
-              Reservasi tanpa bayar di muka
-            </li>
-            {/* Nama kategori hanya di layar lebar — di HP bilahnya jadi sesak. */}
-            {bookable.slice(0, 5).map((s) => (
-              <li key={s.id} className="hidden text-muted-foreground sm:block">
-                {s.name}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <section id="reservasi" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-16 sm:px-8 sm:py-24">
-        <SectionHeading
-          eyebrow="Reservasi"
-          title="Bisa direservasi"
-          subtitle="Kamar, tempat makan, dan layanan yang bisa Anda pesan lebih dulu. Kirim permintaan, tim kami yang mengonfirmasi."
-        />
-        {bookable.length === 0 ? (
-          <EmptyState>
-            Belum ada kategori yang bisa direservasi. Hubungi kami langsung untuk sementara.
-          </EmptyState>
-        ) : (
-          <div className="grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
-            {bookable.map((service) => (
-              <CategoryCard key={service.id} service={service} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="bg-sand-deep/60 py-16 sm:py-24">
-        <div className="mx-auto max-w-6xl px-5 sm:px-8">
-          <SectionHeading
-            eyebrow="Selama menginap"
-            title="Fasilitas Kami"
-            subtitle="Semuanya bisa dinikmati selama menginap, tanpa perlu reservasi."
-          />
-          {infoOnly.length === 0 ? (
-            <EmptyState>Belum ada fasilitas yang ditampilkan.</EmptyState>
+      {/* ---- Reservasi: langsung grid kartu, latar putih — gaya referensi Pinterest ---- */}
+      <section id="reservasi" className="scroll-mt-24 px-5 py-14 sm:px-8 sm:py-20">
+        <h2 className="sr-only">Bisa direservasi</h2>
+        <div className="mx-auto max-w-6xl">
+          {bookable.length === 0 ? (
+            <EmptyState>
+              Belum ada kategori yang bisa direservasi. Hubungi kami langsung untuk sementara.
+            </EmptyState>
           ) : (
-            <>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
-                {infoOnly.map((service) => (
-                  <CategoryCard key={service.id} service={service} variant="fasilitas" />
-                ))}
-              </div>
-              <div className="mt-10 text-center">
-                <Button asChild variant="outline" className="btn-pill bg-card">
-                  <Link href="/fasilitas">Lihat galeri lengkap</Link>
-                </Button>
-              </div>
-            </>
+            <div className="grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+              {bookable.map((service) => (
+                <CategoryCard key={service.id} service={service} />
+              ))}
+            </div>
           )}
         </div>
       </section>

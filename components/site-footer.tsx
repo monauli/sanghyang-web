@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getSiteContent } from '@/lib/supabase/queries';
 import { SITE_NAME } from '@/lib/seo';
 import { contactLinks } from '@/lib/contact';
+import { TornEdge } from '@/components/torn-edge';
 
 const NAV = [
   { href: '/', label: 'Beranda' },
@@ -19,7 +20,8 @@ export async function SiteFooter() {
   const contacts = contactLinks(content);
 
   return (
-    <footer className="mt-16 bg-sea-deep text-primary-foreground sm:mt-24">
+    <footer className="relative mt-16 bg-sea-deep text-primary-foreground sm:mt-24">
+      <TornEdge className="text-background" />
       <div className="mx-auto max-w-6xl px-5 py-14 sm:px-8 sm:py-16">
         <div className="grid gap-10 sm:grid-cols-3">
           <div>

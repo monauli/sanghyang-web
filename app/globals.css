@@ -23,7 +23,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-display);
+  --font-heading: var(--font-geist-sans);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -66,10 +66,10 @@
   --popover: oklch(0.995 0.003 80);
   --popover-foreground: var(--foreground);
 
-  /* Laut */
-  --primary: oklch(0.4 0.065 195);
+  /* Laut — navy-teal pekat, mendekati referensi */
+  --primary: oklch(0.38 0.09 210);
   --primary-foreground: oklch(0.978 0.007 80);
-  --sea-deep: oklch(0.3 0.055 200);
+  --sea-deep: oklch(0.27 0.08 212);
 
   --secondary: oklch(0.95 0.012 78);
   --secondary-foreground: var(--foreground);
@@ -119,9 +119,9 @@
   }
   h1,
   h2 {
-    font-family: var(--font-display), Georgia, "Times New Roman", serif;
-    font-weight: 500;
-    letter-spacing: -0.005em;
+    font-family: var(--font-sans);
+    font-weight: 700;
+    letter-spacing: -0.02em;
     line-height: 1.08;
     text-wrap: balance;
   }
