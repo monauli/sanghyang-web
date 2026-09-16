@@ -4,6 +4,11 @@ import { Photo } from './photo';
 import type { Service } from '@/lib/types';
 
 /**
+ * Foto jadi latar penuh kartu, nama + tombol numpuk di atasnya pakai gradasi
+ * — bukan foto lalu blok teks terpisah di bawah. Arah ini dari hasil
+ * brainstorming desain Home (referensi Pinterest: kartu foto besar, CTA
+ * ditumpuk di atas foto).
+ *
  * `reservasi` — kartu besar dengan deskripsi, dipakai di section Reservasi.
  * `fasilitas` — kartu galeri ringkas tanpa deskripsi, tanpa isyarat booking.
  */
@@ -19,34 +24,33 @@ export function CategoryCard({
   return (
     <Link
       href={`/kategori/${service.type}`}
-      className="card-surface card-surface-hover group flex h-full flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className={`card-surface card-surface-hover group relative block w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+        isReservasi ? 'aspect-[4/5]' : 'aspect-square'
+      }`}
     >
-      <div
-        className={`relative w-full overflow-hidden ${isReservasi ? 'aspect-[4/3]' : 'aspect-square'}`}
-      >
-        <Photo
-          src={service.photo_url}
-          alt={service.name}
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="transition-transform duration-700 ease-soft group-hover:scale-[1.04]"
-        />
-      </div>
+      <Photo
+        src={service.photo_url}
+        alt={service.name}
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        className="transition-transform duration-700 ease-soft group-hover:scale-[1.04]"
+      />
+      {/* Gradien sama seperti header halaman kategori detail, supaya teks
+          putih tetap terbaca berapa pun terangnya foto. */}
+      <div className="absolute inset-0 bg-gradient-to-t from-sea-deep/90 via-sea-deep/30 to-transparent" />
 
-      <div className={`flex flex-1 flex-col ${isReservasi ? 'p-5 sm:p-6' : 'p-3.5 sm:p-4'}`}>
-        <h3
-          className={`font-sans font-medium text-foreground transition-colors group-hover:text-primary ${
-            isReservasi ? 'text-lg' : 'text-sm'
-          }`}
-        >
+      <div
+        className={`absolute inset-x-0 bottom-0 flex flex-col text-white ${isReservasi ? 'p-5 sm:p-6' : 'p-3 sm:p-3.5'}`}
+      >
+        <h3 className={`font-sans font-medium ${isReservasi ? 'text-lg' : 'text-sm'}`}>
           {service.name}
         </h3>
         {isReservasi && service.description && (
-          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+          <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-white/80">
             {service.description}
           </p>
         )}
         <span
-          className={`mt-auto inline-flex items-center gap-1.5 pt-3.5 font-medium text-primary ${
+          className={`mt-2.5 inline-flex items-center gap-1.5 font-medium ${
             isReservasi ? 'text-sm' : 'text-xs'
           }`}
         >

@@ -16,7 +16,7 @@ export default function Loading() {
       </section>
       <section className="mx-auto max-w-6xl px-5 py-14 sm:px-8 sm:py-20">
         <HeadingSkeleton />
-        <CardGridSkeleton />
+        <CardGridSkeleton overlay aspect="aspect-[4/5]" />
       </section>
     </>
   );
