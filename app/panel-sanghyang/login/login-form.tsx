@@ -36,6 +36,12 @@ export function LoginForm() {
           className="h-11"
         />
       </div>
+      <a
+        href="/panel-sanghyang/lupa-password"
+        className="text-right text-sm text-muted-foreground underline underline-offset-4"
+      >
+        Lupa password?
+      </a>
       {state.error && (
         <p role="alert" className="text-sm font-medium text-destructive">
           {state.error}
