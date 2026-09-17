@@ -35,6 +35,11 @@ export default async function AdminDashboardPage() {
               Kelola konten
             </Link>
           )}
+          {session.role === 'owner' && (
+            <Link href="/panel-sanghyang/katalog" className="underline underline-offset-4">
+              Kelola katalog
+            </Link>
+          )}
         </nav>
       </div>
     </main>
