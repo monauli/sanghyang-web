@@ -9,17 +9,17 @@ export const metadata: Metadata = {
 export default async function ResetPasswordPage({
   searchParams,
 }: {
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ token?: string; uid?: string }>;
 }) {
-  const { token } = await searchParams;
+  const { token, uid } = await searchParams;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted px-4">
       <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-sm">
         <h1 className="font-heading text-2xl">Reset Password</h1>
-        {token ? (
+        {token && uid ? (
           <div className="mt-6">
-            <ResetPasswordForm token={token} />
+            <ResetPasswordForm token={token} uid={uid} />
           </div>
         ) : (
           <p className="mt-1 text-sm text-muted-foreground">

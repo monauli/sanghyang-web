@@ -17,6 +17,11 @@ const GENERIC_MESSAGE =
   'Kalau email terdaftar, link reset sudah dikirim. Cek inbox (dan folder spam).';
 const RATE_LIMIT_PER_HOUR = 3;
 
+// Dipakai untuk menyamakan waktu respons jalur "email tidak ada" dengan
+// jalur "email ada" (yang menjalankan hashResetToken/scryptSync sungguhan)
+// — pola sama dengan DUMMY_HASH di app/actions/admin-auth.ts.
+const DUMMY_TOKEN_HASH = hashResetToken('bukan-token-sungguhan');
+
 export async function mintaReset(
   _prev: MintaResetState,
   formData: FormData
@@ -33,7 +38,10 @@ export async function mintaReset(
     .eq('email', email)
     .maybeSingle();
 
-  if (!admin) return { message: GENERIC_MESSAGE };
+  if (!admin) {
+    verifyResetToken(email, DUMMY_TOKEN_HASH);
+    return { message: GENERIC_MESSAGE };
+  }
 
   const oneHourAgo = new Date(Date.now() - 60 * 60_000).toISOString();
   const { count } = await supabase
@@ -53,7 +61,7 @@ export async function mintaReset(
 
   if (!error) {
     const base = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, '') ?? '';
-    const resetLink = `${base}/panel-sanghyang/reset-password?token=${token}`;
+    const resetLink = `${base}/panel-sanghyang/reset-password?token=${token}&uid=${admin.id}`;
     await sendPasswordResetEmail(admin.email, resetLink);
   }
 
@@ -69,8 +77,9 @@ export async function resetPassword(
   formData: FormData
 ): Promise<ResetPasswordState> {
   const token = String(formData.get('token') ?? '');
+  const uid = String(formData.get('uid') ?? '');
   const password = String(formData.get('password') ?? '');
-  if (!token || !password) return { error: TOKEN_INVALID_ERROR, success: false };
+  if (!token || !uid || !password) return { error: TOKEN_INVALID_ERROR, success: false };
   if (password.length < 8) {
     return { error: 'Password minimal 8 karakter.', success: false };
   }
@@ -78,9 +87,15 @@ export async function resetPassword(
   const supabase = getAdminClient();
   if (!supabase) return { error: TOKEN_INVALID_ERROR, success: false };
 
+  // uid cuma mempersempit query ke token milik satu akun (dari link email,
+  // bukan rahasia) — token itu sendiri tetap satu-satunya bukti yang
+  // divalidasi. Ini mencegah scan-and-scrypt-verify semua token pending
+  // di seluruh sistem untuk tiap percobaan (CPU DoS kalau token pending
+  // menumpuk).
   const { data: candidates } = await supabase
     .from('admin_password_resets')
     .select('id, admin_user_id, token_hash, expires_at, used_at')
+    .eq('admin_user_id', uid)
     .is('used_at', null)
     .gte('expires_at', new Date().toISOString());
 

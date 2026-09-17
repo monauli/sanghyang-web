@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 
 const EMPTY: ResetPasswordState = { error: null, success: false };
 
-export function ResetPasswordForm({ token }: { token: string }) {
+export function ResetPasswordForm({ token, uid }: { token: string; uid: string }) {
   const [state, formAction, pending] = useActionState(resetPassword, EMPTY);
 
   if (state.success) {
@@ -27,6 +27,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
   return (
     <form action={formAction} className="grid gap-4">
       <input type="hidden" name="token" value={token} />
+      <input type="hidden" name="uid" value={uid} />
       <div className="grid gap-1.5">
         <Label htmlFor="password">Password Baru</Label>
         <Input
