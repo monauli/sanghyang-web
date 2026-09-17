@@ -15,7 +15,6 @@ export function ItemForm({ serviceId, item }: { serviceId: string; item?: Servic
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="service_id" value={serviceId} />
       {item && <input type="hidden" name="id" value={item.id} />}
-      <input type="hidden" name="current_photo_url" value={item?.photo_url ?? ''} />
 
       <div>
         <label htmlFor="item-name" className="text-sm font-medium">

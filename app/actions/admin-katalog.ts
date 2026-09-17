@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { requireScopedClient } from '@/lib/admin/scope';
-import { listServicesAdmin } from '@/lib/katalog/queries';
+import { listServicesAdmin, getServiceByIdAdmin, getItemByIdAdmin } from '@/lib/katalog/queries';
 import { slugify, uniqueSlug } from '@/lib/katalog/slug';
 import { uploadKatalogFoto, deleteFotoJikaMilikKita, FotoError } from '@/lib/katalog/photo';
 import { parsePrice } from '@/lib/katalog/validation';
@@ -21,17 +21,9 @@ export async function simpanKategori(
   const name = String(formData.get('name') ?? '').trim();
   const description = String(formData.get('description') ?? '').trim();
   const isBookable = formData.get('is_bookable') === 'on';
-  const currentBookingMethod = String(formData.get('current_booking_method') ?? '');
-  const currentPhotoUrl = String(formData.get('current_photo_url') ?? '') || null;
   const photo = formData.get('photo');
 
   if (name.length < 2) return { error: 'Nama kategori minimal 2 karakter.', success: false };
-
-  // Rooms (booking_method = 'exely') dikunci: form ini tidak boleh pernah
-  // mengubahnya jadi self_service, apa pun isi checkbox-nya (lihat Global
-  // Constraints di plan ini).
-  const bookingMethod = currentBookingMethod === 'exely' ? 'exely' : 'self_service';
-  const isBookableFinal = currentBookingMethod === 'exely' ? true : isBookable;
 
   let photoUrl: string | undefined;
   if (photo instanceof File && photo.size > 0) {
@@ -43,18 +35,27 @@ export async function simpanKategori(
   }
 
   if (id) {
+    const current = await getServiceByIdAdmin(supabase, id);
+    if (!current) return { error: 'Kategori tidak ditemukan.', success: false };
+
+    // Rooms (booking_method = 'exely') dikunci: form ini tidak boleh pernah
+    // mengubahnya jadi self_service, apa pun isi checkbox-nya (lihat Global
+    // Constraints di plan ini). Sumber kebenaran diambil dari DB, bukan
+    // form, supaya tidak bisa dipalsukan lewat hidden field.
+    const isBookableFinal = current.booking_method === 'exely' ? true : isBookable;
+
     const update: Record<string, unknown> = {
       name,
       description: description || null,
       is_bookable: isBookableFinal,
-      booking_method: bookingMethod,
+      booking_method: current.booking_method,
     };
     if (photoUrl) update.photo_url = photoUrl;
 
     const { error } = await supabase.from('services').update(update).eq('id', id);
     if (error) return { error: `Gagal menyimpan: ${error.message}`, success: false };
 
-    if (photoUrl) await deleteFotoJikaMilikKita(supabase, currentPhotoUrl);
+    if (photoUrl) await deleteFotoJikaMilikKita(supabase, current.photo_url);
 
     revalidatePath('/panel-sanghyang/katalog');
     revalidatePath(`/panel-sanghyang/katalog/${id}`);
@@ -76,8 +77,8 @@ export async function simpanKategori(
       type: slug,
       name,
       description: description || null,
-      is_bookable: isBookableFinal,
-      booking_method: bookingMethod,
+      is_bookable: isBookable,
+      booking_method: 'self_service',
       photo_url: photoUrl ?? null,
     })
     .select('id')
@@ -104,7 +105,6 @@ export async function simpanItem(
   const name = String(formData.get('name') ?? '').trim();
   const description = String(formData.get('description') ?? '').trim();
   const priceRaw = String(formData.get('price') ?? '');
-  const currentPhotoUrl = String(formData.get('current_photo_url') ?? '') || null;
   const photo = formData.get('photo');
 
   if (!serviceId) return { error: 'Kategori tidak valid.', success: false };
@@ -123,13 +123,20 @@ export async function simpanItem(
   }
 
   if (id) {
+    const current = await getItemByIdAdmin(supabase, id);
+    if (!current) return { error: 'Item tidak ditemukan.', success: false };
+
     const update: Record<string, unknown> = { name, description: description || null, price };
     if (photoUrl) update.photo_url = photoUrl;
 
-    const { error } = await supabase.from('service_items').update(update).eq('id', id);
+    const { error } = await supabase
+      .from('service_items')
+      .update(update)
+      .eq('id', id)
+      .eq('service_id', serviceId);
     if (error) return { error: `Gagal menyimpan: ${error.message}`, success: false };
 
-    if (photoUrl) await deleteFotoJikaMilikKita(supabase, currentPhotoUrl);
+    if (photoUrl) await deleteFotoJikaMilikKita(supabase, current.photo_url);
   } else {
     const { error } = await supabase.from('service_items').insert({
       service_id: serviceId,

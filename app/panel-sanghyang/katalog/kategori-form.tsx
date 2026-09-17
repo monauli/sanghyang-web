@@ -15,8 +15,6 @@ export function KategoriForm({ service }: { service?: Service }) {
   return (
     <form action={formAction} className="space-y-4">
       {service && <input type="hidden" name="id" value={service.id} />}
-      <input type="hidden" name="current_booking_method" value={service?.booking_method ?? ''} />
-      <input type="hidden" name="current_photo_url" value={service?.photo_url ?? ''} />
 
       <div>
         <label htmlFor="kategori-name" className="text-sm font-medium">

@@ -10,6 +10,7 @@ insert into storage.buckets (id, name, public)
 values ('katalog', 'katalog', true)
 on conflict (id) do nothing;
 
+drop policy if exists "Baca publik bucket katalog" on storage.objects;
 create policy "Baca publik bucket katalog"
 on storage.objects for select
 using (bucket_id = 'katalog');

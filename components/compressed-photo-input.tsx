@@ -6,7 +6,7 @@ const MAX_WIDTH = 1600;
 const QUALITY = 0.8;
 
 async function compressImage(file: File): Promise<File> {
-  const bitmap = await createImageBitmap(file);
+  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
   const scale = Math.min(1, MAX_WIDTH / bitmap.width);
   const width = Math.round(bitmap.width * scale);
   const height = Math.round(bitmap.height * scale);
@@ -41,18 +41,23 @@ export function CompressedPhotoInput({
 }) {
   const [preview, setPreview] = useState<string | null>(currentUrl);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const inputId = `foto-${name}`;
 
   async function handleChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setBusy(true);
+    setError(null);
     try {
       const compressed = await compressImage(file);
       const dt = new DataTransfer();
       dt.items.add(compressed);
       e.target.files = dt.files;
       setPreview(URL.createObjectURL(compressed));
+    } catch {
+      setError('Foto tidak bisa diproses, coba file lain.');
+      e.target.value = '';
     } finally {
       setBusy(false);
     }
@@ -77,6 +82,7 @@ export function CompressedPhotoInput({
         className="mt-2 block text-sm"
       />
       {busy && <p className="mt-1 text-xs text-muted-foreground">Mengompres foto…</p>}
+      {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
     </div>
   );
 }
