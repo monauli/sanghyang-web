@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { requireScopedClient, reservationQuery } from '@/lib/admin/scope';
+import { listOutletsForSession } from '@/lib/outlets';
 import { waLink } from '@/lib/notify/wa-link';
 import { StatusForm } from './status-form';
 
@@ -21,12 +22,22 @@ type Row = {
   created_at: string;
 };
 
-export default async function ReservasiPage() {
+export default async function ReservasiPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ outlet?: string }>;
+}) {
   const { session, supabase } = await requireScopedClient();
-  const { data } = await reservationQuery(session, supabase)
-    .order('created_at', { ascending: false })
-    .limit(100);
+  const { outlet: outletFilter } = await searchParams;
+
+  let query = reservationQuery(session, supabase);
+  if (session.role === 'owner' && outletFilter) {
+    query = query.eq('service_id', outletFilter);
+  }
+  const { data } = await query.order('created_at', { ascending: false }).limit(100);
   const rows = (data as Row[] | null) ?? [];
+
+  const outlets = session.role === 'owner' ? await listOutletsForSession(session, supabase) : [];
 
   return (
     <main className="min-h-screen bg-muted p-6">
@@ -35,6 +46,35 @@ export default async function ReservasiPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           {session.role === 'owner' ? 'Semua outlet' : 'Outlet Anda'} — 100 terbaru.
         </p>
+
+        {session.role === 'owner' && outlets.length > 0 && (
+          <form method="get" className="mt-4 flex flex-wrap items-end gap-3">
+            <div>
+              <label htmlFor="outlet-filter" className="text-sm font-medium">
+                Filter outlet
+              </label>
+              <select
+                id="outlet-filter"
+                name="outlet"
+                defaultValue={outletFilter ?? ''}
+                className="mt-1 block rounded-lg border border-border bg-card px-3 py-2 text-sm"
+              >
+                <option value="">Semua outlet</option>
+                {outlets.map((o) => (
+                  <option key={o.service_id} value={o.service_id}>
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="submit"
+              className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
+            >
+              Terapkan
+            </button>
+          </form>
+        )}
 
         {rows.length === 0 ? (
           <p className="mt-6 rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">
