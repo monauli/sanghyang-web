@@ -40,11 +40,19 @@ const ICONS: Record<string, () => React.ReactElement> = {
 };
 
 /** Ikon link sosmed + WhatsApp. WhatsApp otomatis dari contact_phone di site_content. */
-export function SocialIcons({ contactPhone }: { contactPhone?: string }) {
+export function SocialIcons({
+  contactPhone,
+  vertical = false,
+  className = '',
+}: {
+  contactPhone?: string;
+  vertical?: boolean;
+  className?: string;
+}) {
   const wa = whatsappNumber(contactPhone);
 
   return (
-    <div className="flex items-center gap-4">
+    <div className={`flex items-center gap-4 ${vertical ? 'flex-col' : ''} ${className}`}>
       {SOCIAL_LINKS.map(({ label, href }) => {
         const Icon = ICONS[label];
         return (

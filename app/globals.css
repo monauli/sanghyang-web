@@ -136,6 +136,21 @@
     font-size: clamp(3rem, 8.5vw, 6rem);
     line-height: 1;
   }
+  /* Baris kartu kategori hero: bisa digeser, tapi batangnya tidak ikut tampil
+     di atas foto. */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .display-script {
+    font-family: var(--font-script);
+    font-weight: 400;
+    font-size: clamp(2.75rem, 7.5vw, 6rem);
+    line-height: 0.95;
+    letter-spacing: 0;
+  }
   .title-page {
     font-size: clamp(2.25rem, 5vw, 3.5rem);
   }

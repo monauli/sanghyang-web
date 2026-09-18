@@ -1,13 +1,10 @@
 import Link from 'next/link';
-import type { CSSProperties } from 'react';
 import type { Metadata } from 'next';
-import { ArrowDown } from 'lucide-react';
-import { CategoryCard } from '@/components/category-card';
-import { EmptyState } from '@/components/empty-state';
+import { ArrowRight, MapPin } from 'lucide-react';
+import { CategoryIconRow } from '@/components/category-icon-row';
+import { HeroSidebar } from '@/components/hero-sidebar';
 import { Photo } from '@/components/photo';
-import { TornEdge } from '@/components/torn-edge';
-import { Button } from '@/components/ui/button';
-import { getHeroPhotos, getServices } from '@/lib/supabase/queries';
+import { getServices, getSiteContent } from '@/lib/supabase/queries';
 import { SITE_NAME, SITE_TAGLINE, defaultOgImage, pageMetadata } from '@/lib/seo';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -21,88 +18,55 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Home() {
-  const [services, heroPhotosRaw, fallbackPhoto] = await Promise.all([
-    getServices(),
-    getHeroPhotos(),
-    defaultOgImage(),
-  ]);
+  const [services, content] = await Promise.all([getServices(), getSiteContent()]);
   const bookable = services.filter((s) => s.is_bookable);
 
-  // Kurasi bisa kosong (kategori belum diisi foto) — jatuh balik ke satu foto
-  // yang sama dipakai og:image, biar hero tidak pernah tampil polos.
-  const heroPhotos = heroPhotosRaw.length > 0 ? heroPhotosRaw : fallbackPhoto ? [fallbackPhoto] : [];
-
   return (
-    <>
-      {/* ---- Hero: satu foto, nav menumpuk di atasnya, tepi bawah robekan kertas ---- */}
-      <section
-        className="relative isolate flex min-h-[82svh] items-end overflow-hidden sm:min-h-[88svh]"
-        style={{ '--hero-slide-count': heroPhotos.length } as CSSProperties}
-      >
-        {heroPhotos.length <= 1 ? (
-          <Photo src={heroPhotos[0] ?? null} alt="" sizes="100vw" priority />
-        ) : (
-          heroPhotos.map((url, i) => (
-            <div
-              key={url}
-              className="hero-slide absolute inset-0"
-              style={{ animationDelay: `${i * 5}s` }}
-            >
-              <Photo src={url} alt="" sizes="100vw" priority={i === 0} />
-            </div>
-          ))
-        )}
-        {/* Dua lapis overlay: satu meratakan foto seterang apa pun, satu lagi
-            menggelapkan bagian bawah tempat teks berada. Warnanya hijau-laut,
-            bukan hitam, supaya tetap satu keluarga dengan palet. */}
-        <div className="absolute inset-0 bg-sea-deep/25" />
-        <div className="absolute inset-0 bg-gradient-to-t from-sea-deep/95 via-sea-deep/45 to-transparent" />
+    <section className="flex min-h-svh bg-sea-deep">
+      <HeroSidebar contactPhone={content.contact_phone} />
 
-        <div className="relative mx-auto w-full max-w-6xl px-5 pb-14 sm:px-8 sm:pb-20">
-          <p className="eyebrow-light rise">Anyer, Banten</p>
-          <h1 className="display rise rise-2 mt-4 max-w-3xl text-white">{SITE_NAME}</h1>
-          <p className="rise rise-3 mt-5 max-w-lg text-base leading-relaxed text-white/85 sm:text-lg">
-            Kemewahan yang menyatu dengan alam — kamar tepi pantai, dining, spa, dan beragam
-            aktivitas untuk liburan keluarga.
+      <div className="relative isolate mb-5 flex flex-1 flex-col overflow-hidden sm:mb-8">
+        <Photo src="/hero/aerial-1.webp" alt="" sizes="100vw" priority />
+        <div className="absolute inset-0 bg-gradient-to-r from-sea-deep/70 via-sea-deep/25 to-transparent" />
+
+        {/* Baris atas foto: lokasi kiri, tombol reservasi kanan */}
+        <div className="relative flex items-center justify-between px-5 pt-5 sm:px-8 sm:pt-7">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-white sm:text-sm">
+            <MapPin className="size-4" aria-hidden="true" />
+            Anyer, Banten
           </p>
-          <div className="rise rise-4 mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button asChild size="lg" className="btn-pill">
-              <Link href="#reservasi">
-                Mulai reservasi
-                <ArrowDown aria-hidden="true" />
-              </Link>
-            </Button>
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="btn-pill border-white/40 bg-white/10 text-white shadow-none backdrop-blur hover:bg-white/20 hover:text-white"
-            >
-              <Link href="/fasilitas">Lihat fasilitas</Link>
-            </Button>
-          </div>
+          <Link
+            href="/kontak"
+            className="rounded-full bg-white/20 px-4 py-2 text-xs font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/30 sm:text-sm"
+          >
+            Reservasi
+          </Link>
         </div>
 
-        <TornEdge flip className="text-background" />
-      </section>
-
-      {/* ---- Reservasi: langsung grid kartu, latar putih — gaya referensi Pinterest ---- */}
-      <section id="reservasi" className="scroll-mt-24 px-5 py-14 sm:px-8 sm:py-20">
-        <h2 className="sr-only">Bisa direservasi</h2>
-        <div className="mx-auto max-w-6xl">
-          {bookable.length === 0 ? (
-            <EmptyState>
-              Belum ada kategori yang bisa direservasi. Hubungi kami langsung untuk sementara.
-            </EmptyState>
-          ) : (
-            <div className="grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
-              {bookable.map((service) => (
-                <CategoryCard key={service.id} service={service} />
-              ))}
-            </div>
-          )}
+        {/* Judul + deskripsi + link jelajah */}
+        <div className="relative mt-10 max-w-lg flex-1 px-5 sm:mt-16 sm:px-8">
+          <h1 className="display-script rise text-white">
+            {SITE_NAME.split(' ')[0]}
+            <span className="ml-10 block text-[0.62em] sm:ml-16">{SITE_NAME.split(' ')[1]}</span>
+          </h1>
+          <p className="rise rise-2 mt-6 text-sm leading-relaxed text-white/90 sm:text-base">
+            Kemewahan yang menyatu dengan alam — kamar tepi pantai, dining, spa, dan beragam
+            aktivitas untuk liburan keluarga di Anyer.
+          </p>
+          <Link
+            href="/fasilitas"
+            className="rise rise-3 mt-5 inline-flex items-center gap-2 border-b border-white/60 pb-1 text-sm text-white transition-colors hover:border-white"
+          >
+            Jelajahi
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </Link>
         </div>
-      </section>
-    </>
+
+        {/* Kartu kategori di tepi bawah foto */}
+        <div className="relative mt-10 px-5 pb-5 sm:px-8 sm:pb-7">
+          <CategoryIconRow services={bookable} />
+        </div>
+      </div>
+    </section>
   );
 }
