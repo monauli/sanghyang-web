@@ -3,6 +3,7 @@ import { getSiteContent } from '@/lib/supabase/queries';
 import { SITE_NAME } from '@/lib/seo';
 import { contactLinks } from '@/lib/contact';
 import { TornEdge } from '@/components/torn-edge';
+import { SocialIcons } from '@/components/social-icons';
 
 const NAV = [
   { href: '/', label: 'Beranda' },
@@ -73,9 +74,12 @@ export async function SiteFooter() {
           )}
         </div>
 
-        <p className="mt-12 border-t border-white/10 pt-6 text-xs text-primary-foreground/60">
-          {content.footer_text ?? `© ${new Date().getFullYear()} ${SITE_NAME}`}
-        </p>
+        <div className="mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-6">
+          <p className="text-xs text-primary-foreground/60">
+            {content.footer_text ?? `© ${new Date().getFullYear()} ${SITE_NAME}`}
+          </p>
+          <SocialIcons contactPhone={content.contact_phone} />
+        </div>
       </div>
     </footer>
   );
