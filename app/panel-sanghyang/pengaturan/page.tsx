@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { requireScopedClient } from '@/lib/admin/scope';
 import { listOutletsForSession, outletLink } from '@/lib/outlets';
 import { NotifyForm } from './notify-form';
+import { GantiEmailForm } from './ganti-email-form';
 
 export const metadata: Metadata = {
   title: 'Pengaturan Outlet',
@@ -46,6 +47,10 @@ export default async function PengaturanPage() {
             ))}
           </ul>
         )}
+
+        <div className="mt-8">
+          <GantiEmailForm emailSekarang={session.email} />
+        </div>
       </div>
     </main>
   );
